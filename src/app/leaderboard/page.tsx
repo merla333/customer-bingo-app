@@ -13,50 +13,54 @@ interface LeaderboardEntry {
 }
 
 export default function LeaderboardPage() {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
+    const fetchLeaders = async () => {
       const snapshot = await getDocs(collection(db, 'leaderboard'));
-      const list = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as { wins: number }),
-      }));
-      const sorted = list.sort((a, b) => b.wins - a.wins);
-      setEntries(sorted);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as { wins: number }) }));
+      const sorted = data.sort((a, b) => b.wins - a.wins);
+      setLeaders(sorted);
     };
 
-    fetchLeaderboard();
+    fetchLeaders();
   }, []);
 
+  const getEmoji = (index: number, wins: number, topWins: number) => {
+    if (wins === topWins) return '👑';
+    if (index >= leaders.length - 2) return '💩';
+    return '✨';
+  };
+
   return (
-    <div className="min-h-screen bg-green-50 p-6 text-green-900">
+    <div className="min-h-screen bg-green-50 text-green-900 p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-center w-full">🏆 Leaderboard</h1>
-        <Link href="/" className="absolute right-4 top-6 text-blue-600 hover:underline text-sm">
-          Home
-        </Link>
+        <h1 className="text-3xl font-bold">Leaderboard</h1>
+        <Link href="/" className="text-blue-600 hover:underline text-sm">Home</Link>
       </div>
 
-      <div className="max-w-md mx-auto">
-        {entries.length === 0 ? (
-          <p className="text-center text-gray-600">No wins recorded yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {entries.map((entry, index) => (
-              <li
-                key={entry.id}
-                className="bg-white p-3 border border-green-200 rounded shadow-sm flex justify-between items-center"
-              >
-                <span className="font-semibold text-green-800">
-                  {index + 1}. {entry.id.charAt(0).toUpperCase() + entry.id.slice(1)}
-                </span>
-                <span className="text-sm text-gray-700">{entry.wins} win{entry.wins !== 1 ? 's' : ''}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {leaders.length === 0 ? (
+        <p>No winners yet! Be the first to get BINGO!</p>
+      ) : (
+        <ul className="space-y-4">
+          {leaders.map((user, index) => (
+            <li
+              key={user.id}
+              className={`flex justify-between items-center p-4 rounded-lg border shadow transition-all ${
+                user.wins === leaders[0].wins ? 'bg-yellow-100 text-yellow-900 text-xl font-bold' :
+                index >= leaders.length - 2 ? 'bg-gray-100 text-gray-600 text-sm italic' :
+                'bg-white'
+              }`}
+            >
+              <span>
+                {getEmoji(index, user.wins, leaders[0].wins)}{' '}
+                {user.id.charAt(0).toUpperCase() + user.id.slice(1)}
+              </span>
+              <span className="ml-2">{user.wins} win{user.wins !== 1 ? 's' : ''}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

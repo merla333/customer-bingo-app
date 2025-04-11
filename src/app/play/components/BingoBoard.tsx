@@ -163,7 +163,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
         </div>
       )}
 
-      {someoneWon && !won && (
+      {!won && someoneWon && (
         <div className="bg-yellow-200 border border-yellow-400 text-yellow-900 p-4 mb-4 rounded text-center">
           🌟 {someoneWon} got BINGO! You can view your card, then generate a new one when you're ready.
         </div>
