@@ -1,5 +1,3 @@
-// src/app/page.tsx
-
 'use client';
 
 import Link from 'next/link';
@@ -26,12 +24,19 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="text-center">
+        <div className="flex flex-col gap-3 items-center">
           <Link
             href="/leaderboard"
-            className="inline-block bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800 transition-all"
+            className="inline-block bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 transition-all"
           >
-            See Leaderboard
+            🏆 See Leaderboard
+          </Link>
+
+          <Link
+            href="/tiles"
+            className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-all"
+          >
+            ✏️ Add/Edit Tiles
           </Link>
         </div>
       </div>
