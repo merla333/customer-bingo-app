@@ -11,7 +11,8 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  increment
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -85,6 +86,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
     setTiles(finalTiles);
     setSelected([12]);
     setWon(false);
+    setSomeoneWon(null); // Clear winner notification after refresh
   }, [router, username]);
 
   useEffect(() => {
@@ -129,6 +131,10 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
     if (hasBingo && !won) {
       setWon(true);
       await updateDoc(boardRef, { winner: true });
+      const leaderboardRef = doc(db, 'leaderboard', username);
+      await updateDoc(leaderboardRef, { wins: increment(1) }).catch(async () => {
+        await setDoc(leaderboardRef, { wins: 1 });
+      });
     }
   };
 
@@ -154,13 +160,19 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
 
       {someoneWon && !won && (
         <div className="bg-yellow-200 border border-yellow-400 text-yellow-900 p-4 mb-4 rounded text-center">
-          🌟 {someoneWon} got BINGO! You can view your card, then generate a new one when you&apos;re ready.
+          🌟 {someoneWon} got BINGO! You can view your card, then generate a new one when you're ready.
         </div>
       )}
 
       {won && (
-        <div className="fixed inset-0 flex items-center justify-center bg-green-900 bg-opacity-90 text-white text-2xl font-bold text-center z-50 p-4">
-          🎉 You got BINGO! 🎉
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-green-900 bg-opacity-90 text-white text-center z-50 p-4 space-y-4">
+          <div className="text-2xl font-bold">🎉 You got BINGO! 🎉</div>
+          <button
+            onClick={generateNewBoard}
+            className="bg-white text-green-800 px-4 py-2 rounded font-semibold hover:bg-green-100"
+          >
+            Start New Game
+          </button>
         </div>
       )}
 
