@@ -10,14 +10,17 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc,
-  query,
-  where
+  doc
 } from 'firebase/firestore';
+
+interface Tile {
+  id: string;
+  text: string;
+}
 
 export default function ManageTilesPage() {
   const [newTile, setNewTile] = useState('');
-  const [tiles, setTiles] = useState<any[]>([]);
+  const [tiles, setTiles] = useState<Tile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,7 +29,7 @@ export default function ManageTilesPage() {
 
   const fetchTiles = async () => {
     const snapshot = await getDocs(collection(db, 'tiles'));
-    const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Tile));
     setTiles(list);
     setLoading(false);
   };
@@ -46,11 +49,10 @@ export default function ManageTilesPage() {
     const confirmDelete = window.confirm(`Are you sure you want to delete "${text}"?`);
     if (!confirmDelete) return;
 
-    // Check if tile is in use on any board
     const boardsSnapshot = await getDocs(collection(db, 'boards'));
     const inUse = boardsSnapshot.docs.some((docSnap) => {
       const data = docSnap.data();
-      return data.tiles?.some((tile: any) => tile.id === id);
+      return data.tiles?.some((tile: { id: string }) => tile.id === id);
     });
 
     if (inUse) {

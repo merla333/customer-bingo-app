@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -11,8 +11,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp,
-  Timestamp
+  serverTimestamp
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -53,35 +52,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
   const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    loadOrCreateBoard();
-  }, [router, username]);
-
-  const loadOrCreateBoard = async () => {
-    const boardRef = doc(db, 'boards', username);
-    const boardSnap = await getDoc(boardRef);
-
-    const allBoardsSnap = await getDocs(collection(db, 'boards'));
-    const winner = allBoardsSnap.docs.find(doc => doc.data().winner === true && doc.id !== username);
-    if (winner) setSomeoneWon(winner.id);
-
-    if (boardSnap.exists()) {
-      const data = boardSnap.data();
-      setTiles(data.tiles);
-      setSelected(data.selected || [12]);
-      setWon(checkBingo(data.selected || [12]));
-
-      if (data.refreshedAt && data.refreshedAt.toDate) {
-        const date = data.refreshedAt.toDate();
-        const formatted = date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        setRefreshedAt(formatted);
-      }
-    } else {
-      await generateNewBoard();
-    }
-  };
-
-  const generateNewBoard = async () => {
+  const generateNewBoard = useCallback(async () => {
     const confirmed = window.confirm('Are you sure you want to refresh your board? This will clear your current progress.');
     if (!confirmed) return;
 
@@ -114,7 +85,35 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
     setTiles(finalTiles);
     setSelected([12]);
     setWon(false);
-  };
+  }, [router, username]);
+
+  useEffect(() => {
+    const load = async () => {
+      const boardRef = doc(db, 'boards', username);
+      const boardSnap = await getDoc(boardRef);
+
+      const allBoardsSnap = await getDocs(collection(db, 'boards'));
+      const winner = allBoardsSnap.docs.find(doc => doc.data().winner === true && doc.id !== username);
+      if (winner) setSomeoneWon(winner.id);
+
+      if (boardSnap.exists()) {
+        const data = boardSnap.data();
+        setTiles(data.tiles);
+        setSelected(data.selected || [12]);
+        setWon(checkBingo(data.selected || [12]));
+
+        if (data.refreshedAt && data.refreshedAt.toDate) {
+          const date = data.refreshedAt.toDate();
+          const formatted = date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          setRefreshedAt(formatted);
+        }
+      } else {
+        await generateNewBoard();
+      }
+    };
+
+    load();
+  }, [router, username, generateNewBoard]);
 
   const toggleTile = async (index: number) => {
     if (index === 12 || won) return;
@@ -152,7 +151,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
 
       {someoneWon && !won && (
         <div className="bg-yellow-200 border border-yellow-400 text-yellow-900 p-4 mb-4 rounded text-center">
-          🌟 {someoneWon} got BINGO! You can view your card, then generate a new one when you're ready.
+          🌟 {someoneWon} got BINGO! You can view your card, then generate a new one when you&apos;re ready.
         </div>
       )}
 
