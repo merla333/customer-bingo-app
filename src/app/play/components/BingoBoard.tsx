@@ -132,12 +132,15 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
     }
   };
 
+  const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-center w-full">
-          Bingo for {username ?? 'Player'}
-        </h2>
+        <div className="text-center w-full">
+          <h2 className="text-xl font-bold">{capitalizedName} Bingo Card</h2>
+          <p className="text-sm italic text-gray-700">Get those bitches</p>
+        </div>
         <Link href="/" className="text-blue-600 hover:underline text-sm absolute right-4 top-4">
           Home
         </Link>
