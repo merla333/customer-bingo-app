@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Pearl Bingo',
   description: 'An unhinged bingo game for baristas, coworkers, and friends',
 };
