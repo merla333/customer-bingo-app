@@ -51,6 +51,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
   const [won, setWon] = useState(false);
   const [someoneWon, setSomeoneWon] = useState<string | null>(null);
   const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
+  const [showBingoScreen, setShowBingoScreen] = useState(false);
   const router = useRouter();
 
   const generateNewBoard = useCallback(async () => {
@@ -86,7 +87,8 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
     setTiles(finalTiles);
     setSelected([12]);
     setWon(false);
-    setSomeoneWon(null); // Clear winner notification after refresh
+    setSomeoneWon(null);
+    setShowBingoScreen(false);
   }, [router, username]);
 
   useEffect(() => {
@@ -102,7 +104,9 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
         const data = boardSnap.data();
         setTiles(data.tiles);
         setSelected(data.selected || [12]);
-        setWon(checkBingo(data.selected || [12]));
+        const hasWon = checkBingo(data.selected || [12]);
+        setWon(hasWon);
+        setShowBingoScreen(hasWon);
 
         if (data.refreshedAt && data.refreshedAt.toDate) {
           const date = data.refreshedAt.toDate();
@@ -130,6 +134,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
     const hasBingo = checkBingo(newSelected);
     if (hasBingo && !won) {
       setWon(true);
+      setShowBingoScreen(true);
       await updateDoc(boardRef, { winner: true });
       const leaderboardRef = doc(db, 'leaderboard', username);
       await updateDoc(leaderboardRef, { wins: increment(1) }).catch(async () => {
@@ -164,7 +169,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
         </div>
       )}
 
-      {won && (
+      {showBingoScreen && (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-green-900 bg-opacity-90 text-white text-center z-50 p-4 space-y-4">
           <div className="text-2xl font-bold">🎉 You got BINGO! 🎉</div>
           <button
@@ -173,6 +178,12 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
           >
             Start New Game
           </button>
+          <Link
+            href="/leaderboard"
+            className="text-white underline text-sm hover:text-green-200"
+          >
+            See Leaderboard
+          </Link>
         </div>
       )}
 
