@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-const users = ['mia', 'kris', 'theo', 'katie'];
+const users = ['mia', 'kris', 'theo', 'katie', 'duncan'];
 
 export default function HomePage() {
   return (
