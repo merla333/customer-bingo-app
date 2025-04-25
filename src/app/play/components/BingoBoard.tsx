@@ -128,7 +128,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
   }, [router, username, generateNewBoard]);
 
   const toggleTile = async (index: number) => {
-    if (index === 12 || won) return;
+    if (index === 12 || won || someoneWon) return; // ⬅️ Updated this line: BLOCK if someone else already won
     const newSelected = selected.includes(index)
       ? selected.filter(i => i !== index)
       : [...selected, index];
