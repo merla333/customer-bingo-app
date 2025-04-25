@@ -80,15 +80,15 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
       refreshedAt: serverTimestamp()
     });
 
-    const now = new Date();
-    const formatted = now.toLocaleDateString() + ' at ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setRefreshedAt(formatted);
-
+    setSomeoneWon(null); // clear the "someone won" message locally
     setTiles(finalTiles);
     setSelected([12]);
     setWon(false);
-    setSomeoneWon(null);
     setShowBingoScreen(false);
+
+    const now = new Date();
+    const formatted = now.toLocaleDateString() + ' at ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setRefreshedAt(formatted);
   }, [router, username]);
 
   useEffect(() => {
@@ -96,9 +96,15 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
       const boardRef = doc(db, 'boards', username);
       const boardSnap = await getDoc(boardRef);
 
-      const allBoardsSnap = await getDocs(collection(db, 'boards'));
-      const winner = allBoardsSnap.docs.find(doc => doc.data().winner === true && doc.id !== username);
-      if (winner) setSomeoneWon(winner.id);
+      const gameStatusRef = doc(db, 'gameStatus', 'current');
+      const winnerSnap = await getDoc(gameStatusRef);
+
+      if (winnerSnap.exists()) {
+        const winnerData = winnerSnap.data();
+        if (winnerData?.winner && winnerData.winner !== username) {
+          setSomeoneWon(winnerData.winner);
+        }
+      }
 
       if (boardSnap.exists()) {
         const data = boardSnap.data();
@@ -135,10 +141,18 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
     if (hasBingo && !won) {
       setWon(true);
       setShowBingoScreen(true);
+
       await updateDoc(boardRef, { winner: true });
+
       const leaderboardRef = doc(db, 'leaderboard', username);
       await updateDoc(leaderboardRef, { wins: increment(1) }).catch(async () => {
         await setDoc(leaderboardRef, { wins: 1 });
+      });
+
+      const gameStatusRef = doc(db, 'gameStatus', 'current');
+      await setDoc(gameStatusRef, {
+        winner: username,
+        timestamp: serverTimestamp()
       });
     }
   };
@@ -165,7 +179,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
 
       {!won && someoneWon && (
         <div className="bg-yellow-200 border border-yellow-400 text-yellow-900 p-4 mb-4 rounded text-center">
-          🌟 {someoneWon} got BINGO! You can view your card, please refresh your card to play the next round.
+          🌟 {someoneWon} beat you! Refresh your card to play the next round.
         </div>
       )}
 
