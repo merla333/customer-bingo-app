@@ -80,7 +80,14 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
       refreshedAt: serverTimestamp()
     });
 
-    setSomeoneWon(null); // clear the "someone won" message locally
+    // NEW: clear the global winner when refreshing
+    const gameStatusRef = doc(db, 'gameStatus', 'current');
+    await setDoc(gameStatusRef, {
+      winner: "",
+      timestamp: serverTimestamp()
+    });
+
+    setSomeoneWon(null);
     setTiles(finalTiles);
     setSelected([12]);
     setWon(false);
@@ -128,7 +135,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
   }, [router, username, generateNewBoard]);
 
   const toggleTile = async (index: number) => {
-    if (index === 12 || won || someoneWon) return; // ⬅️ Updated this line: BLOCK if someone else already won
+    if (index === 12 || won) return;
     const newSelected = selected.includes(index)
       ? selected.filter(i => i !== index)
       : [...selected, index];
@@ -179,7 +186,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
 
       {!won && someoneWon && (
         <div className="bg-yellow-200 border border-yellow-400 text-yellow-900 p-4 mb-4 rounded text-center">
-          🌟 {someoneWon} beat you! Refresh your card to play the next round.
+          🌟 {someoneWon.charAt(0).toUpperCase() + someoneWon.slice(1)} beat you! Refresh your card to play the next round.
         </div>
       )}
 
