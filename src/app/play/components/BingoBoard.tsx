@@ -52,6 +52,7 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
   const [someoneWon, setSomeoneWon] = useState<string | null>(null);
   const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
   const [showBingoScreen, setShowBingoScreen] = useState(false);
+  const [shouldShowWinner, setShouldShowWinner] = useState(false);
   const router = useRouter();
 
   const generateNewBoard = useCallback(async () => {
@@ -80,18 +81,16 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
       refreshedAt: serverTimestamp()
     });
 
-    // NEW: clear the global winner when refreshing
-    const gameStatusRef = doc(db, 'gameStatus', 'current');
-    await setDoc(gameStatusRef, {
-      winner: "",
-      timestamp: serverTimestamp()
-    });
+    // NEW: Mark user as "cleared" the winner
+    const clearedRef = doc(db, 'clearedWinners', username);
+    await setDoc(clearedRef, { cleared: true });
 
-    setSomeoneWon(null);
     setTiles(finalTiles);
     setSelected([12]);
     setWon(false);
     setShowBingoScreen(false);
+    setSomeoneWon(null);
+    setShouldShowWinner(false);
 
     const now = new Date();
     const formatted = now.toLocaleDateString() + ' at ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -106,10 +105,17 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
       const gameStatusRef = doc(db, 'gameStatus', 'current');
       const winnerSnap = await getDoc(gameStatusRef);
 
+      const clearedRef = doc(db, 'clearedWinners', username);
+      const clearedSnap = await getDoc(clearedRef);
+
       if (winnerSnap.exists()) {
         const winnerData = winnerSnap.data();
         if (winnerData?.winner && winnerData.winner !== username) {
           setSomeoneWon(winnerData.winner);
+          // Only show "someone won" if the user hasn't cleared it
+          if (!clearedSnap.exists()) {
+            setShouldShowWinner(true);
+          }
         }
       }
 
@@ -164,13 +170,13 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
     }
   };
 
-  const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
+  const capitalizedName = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
 
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <div className="text-center w-full">
-          <h2 className="text-xl font-bold">{capitalizedName} Bingo Card</h2>
+          <h2 className="text-xl font-bold">{capitalizedName(username)} Bingo Card</h2>
           <p className="text-sm italic text-gray-700">Get those bitches</p>
         </div>
         <Link href="/" className="text-blue-600 hover:underline text-sm absolute right-4 top-4">
@@ -184,9 +190,9 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
         </div>
       )}
 
-      {!won && someoneWon && (
+      {!won && shouldShowWinner && someoneWon && (
         <div className="bg-yellow-200 border border-yellow-400 text-yellow-900 p-4 mb-4 rounded text-center">
-          🌟 {someoneWon.charAt(0).toUpperCase() + someoneWon.slice(1)} beat you! Refresh your card to play the next round.
+          🌟 {capitalizedName(someoneWon)} beat you! Refresh your card to play the next round.
         </div>
       )}
 
