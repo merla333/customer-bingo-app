@@ -12,7 +12,8 @@ import {
   setDoc,
   updateDoc,
   serverTimestamp,
-  increment
+  increment,
+  onSnapshot
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -81,7 +82,6 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
       refreshedAt: serverTimestamp()
     });
 
-    // NEW: Mark user as "cleared" the winner
     const clearedRef = doc(db, 'clearedWinners', username);
     await setDoc(clearedRef, { cleared: true });
 
@@ -98,26 +98,13 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
   }, [router, username]);
 
   useEffect(() => {
-    const load = async () => {
-      const boardRef = doc(db, 'boards', username);
+    const boardRef = doc(db, 'boards', username);
+    const gameStatusRef = doc(db, 'gameStatus', 'current');
+    const clearedRef = doc(db, 'clearedWinners', username);
+
+    const loadBoard = async () => {
       const boardSnap = await getDoc(boardRef);
-
-      const gameStatusRef = doc(db, 'gameStatus', 'current');
-      const winnerSnap = await getDoc(gameStatusRef);
-
-      const clearedRef = doc(db, 'clearedWinners', username);
       const clearedSnap = await getDoc(clearedRef);
-
-      if (winnerSnap.exists()) {
-        const winnerData = winnerSnap.data();
-        if (winnerData?.winner && winnerData.winner !== username) {
-          setSomeoneWon(winnerData.winner);
-          // Only show "someone won" if the user hasn't cleared it
-          if (!clearedSnap.exists()) {
-            setShouldShowWinner(true);
-          }
-        }
-      }
 
       if (boardSnap.exists()) {
         const data = boardSnap.data();
@@ -137,7 +124,19 @@ export default function BingoBoard({ username = 'guest' }: BingoBoardProps) {
       }
     };
 
-    load();
+    const unsubscribe = onSnapshot(gameStatusRef, async (winnerSnap) => {
+      const winnerData = winnerSnap.data();
+      const clearedSnap = await getDoc(clearedRef);
+      if (winnerData?.winner && winnerData.winner !== username) {
+        setSomeoneWon(winnerData.winner);
+        if (!clearedSnap.exists()) {
+          setShouldShowWinner(true);
+        }
+      }
+    });
+
+    loadBoard();
+    return () => unsubscribe();
   }, [router, username, generateNewBoard]);
 
   const toggleTile = async (index: number) => {
